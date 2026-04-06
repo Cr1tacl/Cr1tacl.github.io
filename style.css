@@ -192,3 +192,36 @@ footer .muted { font-size:12px; margin-top:6px; opacity:.7; }
   max-width: 500px;
   margin: 0 auto;
 }
+
+/* ── Recents ── */
+.recents {
+  padding: 60px 24px 80px;
+  text-align: center;
+}
+.recents > h2 { font-size:28px; font-weight:700; margin-bottom:6px; }
+.recents-sub { font-size:14px; color:var(--muted); margin-bottom:40px; }
+.recents-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.recent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  text-align: left;
+  box-shadow: var(--shadow);
+  transition: transform .2s, box-shadow .2s;
+}
+.recent-card:hover { transform:translateY(-3px); box-shadow:0 8px 28px rgba(0,0,0,0.1); }
+.recent-lang { display:flex; align-items:center; gap:5px; margin-bottom:10px; }
+.lang-badge {
+  display:inline-block; font-size:10px; font-weight:700;
+  padding:2px 7px; border-radius:4px; color:#fff; letter-spacing:.5px;
+}
+.lang-arrow { color:#ccc; font-size:12px; }
+.recent-from { font-size:12px; color:var(--muted); margin-bottom:4px; font-style:italic; }
+.recent-to   { font-size:14px; font-weight:600; color:var(--text); }
