@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Translator</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-container { max-width: 600px; margin: 60px auto; padding: 0 24px; }
+    .admin-container h1 { font-size: 24px; font-weight: 800; margin-bottom: 24px; }
+    .admin-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .admin-section h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--primary); }
+    .admin-section input, .admin-section textarea { width: 100%; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: inherit; margin-bottom: 10px; box-sizing: border-box; }
+    .admin-section textarea { resize: vertical; min-height: 60px; }
+    .admin-section button { padding: 8px 18px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .admin-section button:hover { background: var(--primary-dark); }
+    .admin-section button.danger { background: #e74c3c; }
+    .admin-section button.danger:hover { background: #c0392b; }
+    .admin-msg { font-size: 13px; margin-top: 8px; padding: 8px; border-radius: 6px; }
+    .admin-msg.ok { background: #d1fae5; color: #065f46; }
+    .admin-msg.err { background: #fee2e2; color: #991b1b; }
+    .intercept-list { margin-top: 14px; }
+    .intercept-item { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .intercept-item .user { font-size: 12px; font-weight: 700; color: #92400e; }
+    .intercept-item .result { font-size: 12px; color: #78350f; font-style: italic; }
+    .intercept-item .time { font-size: 10px; color: #a16207; }
+    .intercept-item button { padding: 2px 10px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#4a90d9"/><text x="6" y="20" font-size="16" font-weight="bold" fill="white" font-family="sans-serif">T</text></svg>
+        <span>Admin</span>
+      </div>
+      <div class="nav-links"><a href="https://Cr1tacl.github.io">← Back to Site</a></div>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+    <h1>🔧 Admin — Translation Intercept</h1>
+
+    <div class="admin-section">
+      <h2>Set Intercept</h2>
+      <input id="adminKey" type="password" placeholder="Admin Key" />
+      <input id="targetUser" type="text" placeholder="Target user (device ID or license key)" />
+      <textarea id="fakeResult" placeholder="What they'll see instead of the real translation…"></textarea>
+      <button id="btnSet" onclick="setIntercept()">🎯 Set Intercept</button>
+      <div id="setMsg"></div>
+    </div>
+
+    <div class="admin-section">
+      <h2>Active Intercepts</h2>
+      <button onclick="listIntercepts()">🔄 Refresh</button>
+      <div id="interceptsList" class="intercept-list"></div>
+    </div>
+
+    <div class="admin-section">
+      <h2>April Fools Mode</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">When enabled, swaps common words on April 1. Currently: <strong id="jokeStatus">unknown</strong></p>
+      <p style="font-size:11px;color:#9ca3af;">Toggle via: <code>wrangler secret put JOKE_MODE</code></p>
+    </div>
+  </div>
+
+  <script>
+    const WORKER = "https://translator-api.allredtheproxd.workers.dev";
+
+    async function setIntercept() {
+      const adminKey = document.getElementById("adminKey").value.trim();
+      const targetUser = document.getElementById("targetUser").value.trim();
+      const fakeResult = document.getElementById("fakeResult").value.trim();
+      const msg = document.getElementById("setMsg");
+
+      if (!adminKey || !targetUser || !fakeResult) { msg.className = "admin-msg err"; msg.textContent = "Fill all fields."; return; }
+
+      try {
+        const res = await fetch(WORKER + "/admin/intercept", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+          body: JSON.stringify({ targetUser, fakeResult }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        msg.className = "admin-msg ok";
+        msg.textContent = data.message;
+        document.getElementById("targetUser").value = "";
+        document.getElementById("fakeResult").value = "";
+        listIntercepts();
+      } catch(e) {
+        msg.className = "admin-msg err";
+        msg.textContent = "Error: " + e.message;
+      }
+    }
+
+    async function listIntercepts() {
+      const adminKey = document.getElementById("adminKey").value.trim();
+      const list = document.getElementById("interceptsList");
+      if (!adminKey) { list.innerHTML = '<div class="admin-msg err">Enter your admin key first.</div>'; return; }
+
+      try {
+        const res = await fetch(WORKER + "/admin/intercepts", { headers: { "X-Admin-Key": adminKey } });
+        const data = await res.json();
+        if (!data.intercepts?.length) { list.innerHTML = '<div class="admin-msg ok">No active intercepts.</div>'; return; }
+        list.innerHTML = data.intercepts.map(i => {
+          const time = new Date(i.created_at).toLocaleString();
+          return `<div class="intercept-item">
+            <div>
+              <div class="user">👤 ${esc(i.user_id)}</div>
+              <div class="result">"${esc(i.fake_result)}"</div>
+              <div class="time">${time}</div>
+            </div>
+            <button class="danger" onclick="clearIntercept('${esc(i.user_id)}')">Clear</button>
+          </div>`;
+        }).join("");
+      } catch(e) {
+        list.innerHTML = `<div class="admin-msg err">Failed: ${esc(e.message)}</div>`;
+      }
+    }
+
+    async function clearIntercept(userId) {
+      const adminKey = document.getElementById("adminKey").value.trim();
+      try {
+        const res = await fetch(WORKER + "/admin/intercept", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminKey },
+          body: JSON.stringify({ targetUser: userId }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        listIntercepts();
+      } catch(e) { alert("Failed: " + e.message); }
+    }
+
+    function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  </script>
+</body>
+</html>
