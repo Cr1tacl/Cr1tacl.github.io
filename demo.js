@@ -99,6 +99,20 @@
     tgtSel.innerHTML += `<option value="${l.code}" ${l.code==="ES"?"selected":""}>${l.label}</option>`;
   });
 
+  // Usage counter
+  const COUNTER_KEY = "translator_demo_count";
+  const MAX_USES = 10;
+  let used = parseInt(localStorage.getItem(COUNTER_KEY) || "0", 10);
+
+  function updateCounter() {
+    used++;
+    localStorage.setItem(COUNTER_KEY, used.toString());
+  }
+
+  function isExhausted() {
+    return used >= MAX_USES;
+  }
+
   // Translate
   const input  = widget.querySelector("#demoInput");
   const btn    = widget.querySelector("#demoBtn");
@@ -109,6 +123,11 @@
   async function translate() {
     const text = input.value.trim();
     if (!text) return;
+
+    if (isExhausted()) {
+      showExhausted();
+      return;
+    }
 
     btn.disabled = true;
     btn.textContent = "Translating…";
@@ -126,9 +145,11 @@
       if (!data.responseData?.translatedText) throw new Error("No response");
 
       const translated = data.responseData.translatedText;
+      updateCounter();
       result.textContent = translated;
       output.className = "";
-      prov.textContent = "Powered by MyMemory (free tier)";
+      const remaining = MAX_USES - used;
+      prov.textContent = `Powered by MyMemory · ${remaining} free use${remaining === 1 ? "" : "s"} left`;
     } catch(e) {
       output.className = "error";
       result.textContent = "Translation failed — try again or check your connection.";
@@ -137,6 +158,28 @@
 
     btn.disabled = false;
     btn.textContent = "Translate";
+
+    // Check if this was the last use
+    if (isExhausted()) {
+      showExhausted();
+    }
+  }
+
+  function showExhausted() {
+    btn.disabled = true;
+    btn.textContent = "Free uses used up";
+    output.className = "error";
+    result.innerHTML = "You've used all 10 free translations! <a href='#download' style='font-weight:700;'>Download the full extension</a> to keep translating.";
+    prov.textContent = "";
+    input.disabled = true;
+    input.placeholder = "Free uses exhausted — download the extension";
+  }
+
+  // Show current count on load
+  if (!isExhausted()) {
+    prov.textContent = `Powered by MyMemory · ${MAX_USES - used} free use${(MAX_USES - used) === 1 ? "" : "s"} left`;
+  } else {
+    showExhausted();
   }
 
   btn.addEventListener("click", translate);
