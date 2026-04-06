@@ -148,6 +148,14 @@
     <div class="admin-container">
       <h1>Dashboard</h1>
 
+      <div id="myIdBar" class="card" style="background:#fef3c7;border-color:#f59e0b;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span style="font-size:12px;color:#92400e;font-weight:700;">YOUR Device ID:</span>
+          <span id="myDeviceId" class="user-id" style="margin-left:8px;" onclick="copyId(this.textContent)">loading…</span>
+        </div>
+        <button class="btn btn-sm" style="background:#f59e0b;color:#fff;" onclick="loadMyId()">🔄 Refresh</button>
+      </div>
+
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
         <button class="tab-btn" onclick="switchTab('recent')">📝 Recent Translations</button>
@@ -211,6 +219,7 @@
       document.getElementById("dashboard").style.display = "block";
       document.getElementById("loginErr").style.display = "none";
       loadUsers();
+      loadMyId();
     }
 
     function doLogout() {
@@ -226,6 +235,17 @@
       document.getElementById("loginScreen").style.display = "none";
       document.getElementById("dashboard").style.display = "block";
       loadUsers();
+      loadMyId();
+    }
+
+    async function loadMyId() {
+      try {
+        const res = await fetch(WORKER + "/whoami");
+        const data = await res.json();
+        document.getElementById("myDeviceId").textContent = data.device_id;
+      } catch(e) {
+        document.getElementById("myDeviceId").textContent = "unreachable";
+      }
     }
 
     // ── Tabs ──
