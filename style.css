@@ -186,3 +186,9 @@ footer .muted { font-size:12px; margin-top:6px; opacity:.7; }
   .nav-links { gap: 16px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Demo widget area ── */
+#demoContainer {
+  max-width: 500px;
+  margin: 0 auto;
+}
